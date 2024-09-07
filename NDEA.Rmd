@@ -1,0 +1,121 @@
+---
+title: "Network DEA Kao & Hwang"
+author: "Dohyung Bang"
+output: html_document
+---
+
+```{r, include = FALSE}
+library(readr)
+library(dplyr)                
+library(tidyr)
+library(stringr)
+library(lubridate)
+library(lpSolve)
+library(xlsx)
+
+source("./local_lib/mpi.agg.sys.eff.r", encoding='utf-8')
+source("./local_lib/mpi.period.sys.eff.r", encoding='utf-8')
+source("./local_lib/mpi.period.first.eff.r", encoding='utf-8')
+source("./local_lib/mpi.period.first.techeff.r", encoding='utf-8')
+source("./local_lib/mpi.period.second.techeff.r", encoding='utf-8')
+source("./local_lib/mpi.global.mpi.r", encoding='utf-8')
+```
+
+
+## Read Data
+
+```{r}
+hotel_data_final <- 
+  read_csv("./data/hotel_data_final.csv")
+
+unique(hotel_data_final$year)
+
+
+hotel_list <- 
+  hotel_data_final %>% 
+  group_by(name_eng) %>% 
+  summarise(freq = n()) %>% 
+  filter(freq == 5)
+
+names(hotel_data_final)
+```
+
+# Data Modification
+
+```{r}
+dea_data <- 
+  hotel_data_final %>%
+  filter(name_eng %in% hotel_list$name_eng) %>% 
+  mutate(other_exp = exp - labor) %>% 
+  select(name_eng, year, audit, class, nrooms, price, rating, 
+         ta, labor, other_exp, nrooms, # inputs
+         sales, # final outputs
+         CONV, FACILITIES, ROOM, SERVICE) %>%  #intermediate outputs
+  filter(name_eng != "Pacific Hotel") %>%  # other expense < 0 
+  as.data.frame()
+
+summary(dea_data)
+
+dea_data$CONV_adj <- dea_data$CONV - min(dea_data$CONV)
+dea_data$FACILITIES_adj <- dea_data$FACILITIES - min(dea_data$FACILITIES)
+dea_data$ROOM_adj <- dea_data$ROOM - min(dea_data$ROOM)
+dea_data$SERVICE_adj <- dea_data$SERVICE - min(dea_data$SERVICE)
+```
+
+---
+
+# Network Malmquist (Kao & Hwang, 2014; Kao, 2017)
+## Overall
+```{r}
+epsilon <- 0.0000001 # non-zero constant; arbitrary; may need to be adjusted depending on the results
+agg_eff_s <- mpi.agg.sys.eff(dea_data, 
+                             epsilon = epsilon,
+                             idx.var = "name_eng",
+                             time.var = "year",
+                             x.vars = c("ta", "labor", "other_exp", "nrooms"),
+                             z.vars = c("CONV_adj", "FACILITIES_adj","ROOM_adj", "SERVICE_adj"),
+                             y.vars = c("sales"))
+
+period_eff_s <- mpi.period.sys.eff(dea_data, 
+                                   epsilon = epsilon,
+                                   agg.sys.eff = agg_eff_s,
+                                   idx.var = "name_eng",
+                                   time.var = "year",
+                                   x.vars = c("ta", "labor", "other_exp", "nrooms"),
+                                   z.vars = c("CONV_adj", "FACILITIES_adj","ROOM_adj", "SERVICE_adj"),
+                                   y.vars = c("sales"))
+
+period_eff_first <- mpi.period.first.eff(dea_data, 
+                                         epsilon = epsilon,
+                                         agg.sys.eff = agg_eff_s,
+                                         period.sys.eff = period_eff_s,
+                                         idx.var = "name_eng",
+                                         time.var = "year",
+                                         x.vars = c("ta", "labor", "other_exp", "nrooms"),
+                                         z.vars = c("CONV_adj", "FACILITIES_adj","ROOM_adj", "SERVICE_adj"),
+                                         y.vars = c("sales"))
+
+p_techeff_1t <- mpi.period.first.techeff(dea_data, 
+                                         epsilon = epsilon,
+                                         period.first.eff = period_eff_first,
+                                         idx.var = "name_eng",
+                                         time.var = "year",
+                                         x.vars = c("ta", "labor", "other_exp", "nrooms"),
+                                         z.vars = c("CONV_adj", "FACILITIES_adj","ROOM_adj", "SERVICE_adj"),
+                                         y.vars = c("sales"))
+
+p_techeff_2t <- mpi.period.second.techeff(dea_data, 
+                                          epsilon = epsilon,
+                                          period.sys.eff = period_eff_s,
+                                          period.first.eff = period_eff_first,
+                                          idx.var = "name_eng",
+                                          time.var = "year",
+                                          x.vars = c("ta", "labor", "other_exp", "nrooms"),
+                                          z.vars = c("CONV_adj", "FACILITIES_adj","ROOM_adj", "SERVICE_adj"),
+                                          y.vars = c("sales"))
+
+global_mpi <- mpi.global.mpi(period_eff_s, period_eff_first, p_techeff_1t, p_techeff_2t)
+
+
+write.xlsx(global_mpi %>% as.data.frame(), "./output/result_mpi.xlsx", sheetName = "agg_mpi")
+```
