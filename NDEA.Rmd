@@ -58,8 +58,6 @@ dea_data$ROOM_adj <- dea_data$ROOM - min(dea_data$ROOM)
 dea_data$SERVICE_adj <- dea_data$SERVICE - min(dea_data$SERVICE)
 ```
 
----
-
 ## Network DEA & Malmquist Index (Kao & Hwang, 2014; Kao, 2017)
 ```{r}
 epsilon <- 0.0000001 # non-zero constant; arbitrary; may need to be adjusted depending on the results
