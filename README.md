@@ -1,6 +1,6 @@
 # NDEA
 
-Network Data Envelopment Model and Malmquist Productivity Index Based on Relational Model.
+Network Data Envelopment Analysis and Malmquist Productivity Index Based on Relational Model.
 
 References:
 - Kao, C. (2014). Efficiency decomposition for general multi-stage systems in data envelopment analysis. European journal of operational research, 232(1), 117-124.
