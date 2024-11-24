@@ -22,7 +22,8 @@ source("./local_lib/mpi.global.mpi.r", encoding='utf-8')
 ```
 
 
-## Read Data
+# Illustrative Example 
+## Hotel Service Productivity
 
 ```{r}
 hotel_data_final <- 
