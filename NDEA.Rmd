@@ -9,9 +9,7 @@ library(readr)
 library(dplyr)                
 library(tidyr)
 library(stringr)
-library(lubridate)
 library(lpSolve)
-library(xlsx)
 
 source("./local_lib/mpi.agg.sys.eff.r", encoding='utf-8')
 source("./local_lib/mpi.period.sys.eff.r", encoding='utf-8')
@@ -21,10 +19,8 @@ source("./local_lib/mpi.period.second.techeff.r", encoding='utf-8')
 source("./local_lib/mpi.global.mpi.r", encoding='utf-8')
 ```
 
-
 # Illustrative Example 
 ## Hotel Service Productivity
-
 ```{r}
 hotel_data_final <- 
   read_csv("./data/hotel_data_final.csv")
@@ -42,7 +38,6 @@ names(hotel_data_final)
 ```
 
 ## Data Modification
-
 ```{r}
 dea_data <- 
   hotel_data_final %>%
@@ -116,6 +111,5 @@ p_techeff_2t <- mpi.period.second.techeff(dea_data,
 
 global_mpi <- mpi.global.mpi(period_eff_s, period_eff_first, p_techeff_1t, p_techeff_2t)
 
-
-write.xlsx(global_mpi %>% as.data.frame(), "./output/result_mpi.xlsx", sheetName = "agg_mpi")
+write.csv(global_mpi %>% as.data.frame(), "./output/result_mpi.csv")
 ```
